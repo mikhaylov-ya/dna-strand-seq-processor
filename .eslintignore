@@ -1,0 +1,5 @@
+tailwind.js
+*.config.js
+node_modules
+build
+dist
