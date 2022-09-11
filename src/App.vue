@@ -1,10 +1,59 @@
+<script setup>
+  import { ref, reactive, onRenderTriggered } from "vue";
+
+  const state = reactive({
+    sequence: '',
+    errorMessage: 'Enter valid DNA sequences using only A, T, G, C',
+    isValid: true,
+  });
+
+  const input = ref(null);
+
+  onRenderTriggered(() => {
+    state.isValid = !input.value.validity.patternMismatch;
+  });
+
+  const map = {
+    A: 'T',
+    T: 'A',
+    C: 'G',
+    G: 'C',
+  };
+
+  const SeqLength = 13;
+
+</script>
+
 <template>
-  <div class="bg-purple text-black border sm:bg-green md:bg-blue md:text-yellow lg:bg-red xl:bg-orange">
-    Test
+  <div class="flex min-h-full items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="w-full max-w-md space-y-8">
+        <div class="-space-y-px rounded-md shadow-sm">
+          <div class="container">
+            <p class="my-5 text-4xl font-bold tracking-tight text-gray-900">Enter a DNA sequence</p>
+            <p class="text-red-500 py-1" v-if="!state.isValid">{{ state.errorMessage }}</p>
+            <p class="text-gray-500 py-1" v-else>Sequence is fine</p>
+            <input
+              ref="input"
+              autofocus
+              size="100"
+              v-model="state.sequence"
+              pattern="[ATGCatgc]{0,}"
+              title="Wrong nucleo designation"
+              maxlength="100"
+              id="dna"
+              name="dna"
+              type="text"
+              placeholder="DNA Sequence"
+              class="text-xs block w-full appearance-none rounded-none rounded-t-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 invalid:border-red-500 invalid:border-4" />
+          <div class="w-sm h-lg my-4 p-5 overflow-y-auto rounded-t-md border-blue-500 border-4">
+            <span v-for="(char, i) in state.sequence" :key="i" class="inline-block">
+              {{ map[char.toUpperCase()] }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-  <h1 class="text-3xl font-bold underline">
-    Hello world!
-  </h1>
 </template>
 
 
