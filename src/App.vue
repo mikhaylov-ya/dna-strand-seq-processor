@@ -1,18 +1,17 @@
 <script setup>
-  import { ref, reactive, onRenderTriggered } from "vue";
+import { ref, reactive, computed, watch } from "vue";
 
   const state = reactive({
     sequence: '',
-    errorMessage: 'Enter valid DNA sequences using only A, T, G, C',
+    meltingTemp: 0,
     isValid: true,
   });
 
+
   const input = ref(null);
 
-  onRenderTriggered(() => {
-    state.isValid = !input.value.validity.patternMismatch;
-  });
-
+  const errorMessage = 'Enter valid DNA sequences using only A, T, G, C';
+  const pattern = /[ATGCatgc]*/;
   const map = {
     A: 'T',
     T: 'A',
@@ -20,73 +19,69 @@
     G: 'C',
   };
 
-  const SeqLength = 13;
+  const handleInput = (e) => {
+    state.isValid = !e.target.validity.patternMismatch;
+    state.sequence = normalize(e.target.value);
+  };
+
+  const normalize = (seq) => {
+    const [str] = seq.match(pattern);
+    return str.toUpperCase();
+  };
+
+  const output = computed(() => state.sequence.split('')
+    .map((el) => map[el.toUpperCase()])
+    .filter(Boolean));
+
+  watch(state, (newState) => {
+    const { sequence } = newState;
+    const { A = 0, T = 0, G = 0, C = 0 } = sequence.split('').reduce((acc, el) => {
+      acc[el] = (acc[el] ?? 0 ) + 1;
+      return acc;
+    }, {});
+
+    if (sequence.length >= 13) {
+      state.meltingTemp = (64.9 + 41 * (G + C - 16.4) / (A + T + G + C));
+    } else {
+      state.meltingTemp = ((A + T) * 2 + (G + C) * 4);
+    }
+  });
 
 </script>
 
 <template>
   <div class="flex min-h-full items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="w-full max-w-md space-y-8">
-        <div class="-space-y-px rounded-md shadow-sm">
-          <div class="container">
-            <p class="my-5 text-4xl font-bold tracking-tight text-gray-900">Enter a DNA sequence</p>
-            <p class="text-red-500 py-1" v-if="!state.isValid">{{ state.errorMessage }}</p>
-            <p class="text-gray-500 py-1" v-else>Sequence is fine</p>
-            <input
-              ref="input"
-              autofocus
-              size="100"
-              v-model="state.sequence"
-              pattern="[ATGCatgc]{0,}"
-              title="Wrong nucleo designation"
-              maxlength="100"
-              id="dna"
-              name="dna"
-              type="text"
-              placeholder="DNA Sequence"
-              class="text-xs block w-full appearance-none rounded-none rounded-t-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 invalid:border-red-500 invalid:border-4" />
-          <div class="w-sm h-lg my-4 p-5 overflow-y-auto rounded-t-md border-blue-500 border-4">
-            <span v-for="(char, i) in state.sequence" :key="i" class="inline-block">
-              {{ map[char.toUpperCase()] }}
-            </span>
+      <div class="-space-y-px rounded-md shadow-sm">
+        <div class="container">
+          <p class="my-5 text-4xl font-bold tracking-tight text-gray-900">Enter a DNA strand nucleotide sequence</p>
+          <p class="text-red-500 py-1" v-if="!state.isValid">{{ errorMessage }}</p>
+          <p class="text-gray-500 py-1" v-else>Sequence is fine</p>
+          <input
+            ref="input"
+            autofocus
+            size="100"
+            :value="state.sequence"
+            @input="event => handleInput(event)"
+            :pattern="pattern.source"
+            title="Nucleotides"
+            maxlength="100"
+            id="dna"
+            name="dna"
+            type="text"
+            placeholder="Nucleotide sequence"
+            class="text-xs block w-full appearance-none rounded-none rounded-t-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 invalid:border-red-500 invalid:border-4" />
+          <p class="italic mt-4">Complementary strand:</p>
+          <div class="w-sm h-lg my-4 p-5 overflow-y-auto rounded-t-md border-emerald-600 border-2">
+          <span v-for="(char, i) in output" :key="i" class="inline-block">
+            {{ char }}
+          </span>
+          </div>
+          <div class="w-sm h-lg my-4 p-5 overflow-y-auto rounded-t-md border-gray-500 border-3">
+            <p>Melting temperature: {{ state.meltingTemp.toFixed(2) }}</p>
           </div>
         </div>
       </div>
     </div>
   </div>
 </template>
-
-
-<!-- От вас требуется собрать интерфейс-форму. В форме должен быть инпут для
-задания последовательности нуклеотидов во фрагменте одной из двух цепочек
-ДНК.
-Форма должна уметь:
-
-1. Реактивно (сразу реагируя на изменения) дорисовывать нуклеотиды из
-комплементарного фрагмента цепочки (например, можно под инпутом
-дорисовывать оба фрагмента цепочки). Комплементарные пары предлагается
-вспомнить самостоятельно или уточнить загуглив.
-
-2. Реактивно отображать температуру плавления заданной последовательности.
-“Плавление“ в данном случае означает разрыв всех водородных связей между
-комплементарными нуклеотидами. Можно исходить из предположения, что
-зависимость температуры плавления от нуклеотидного состава описывается
-формулой:
-T= 64.9 +41(N(G)+N(C) - 16.4) / (N(A)+N(T)+N(G)+N(C))
-для последовательностей длины не меньше 13.
-Для последовательностей меньшей длины, используется формула
-T= 2 * (N(A) + N(T)) + (N(G) + N(C)) * 4
-где N(letter) - количество нуклеотида letter во введенной
-последовательности (только в одном из двух фрагментов).
-3. Предположим, что данная формула работает хорошо для последовательностей
-не длиннее 100 нуклеотидов, поэтому можно ограничить длину вводимой
-последовательности сотней символов.
-Кроме того, будет разумно сделать так, чтобы форма не пускала любые
-символы, кроме “A”, “T”, “G”, “C” или ругалась на их присутствие.
-
-Желательно реализовать на Vue, заодно разобравшись с основами написания
-шаблонов и компонентов. Так же, рекомендуется организовать работу компонента с формой так,
-чтобы в нем использовались стандартные инструменты для динамической генерации контента (встроенная директива v-for, например, чтобы комплементарные пары нуклеотидов отображались с помощью этой директивы)
-В ответ можете прислать ссылку на репозиторий с проектом,
-чтобы его можно было склонировать и запустить локально.
- -->
