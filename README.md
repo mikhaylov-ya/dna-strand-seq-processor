@@ -1,5 +1,4 @@
-# DNA-pairs
-
+# [DNA-pairs](https://dna-strand-seq-processor.vercel.app/) (click to see deployed app)
 
 
 ## Project Setup
