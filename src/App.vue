@@ -2,6 +2,7 @@
 import {
   ref, reactive, computed, watch,
 } from 'vue';
+import OutputContainer from './OutputContainer.vue';
 
 const state = reactive({
   sequence: '',
@@ -30,9 +31,14 @@ const handleInput = (e) => {
   state.sequence = normalize(e.target.value);
 };
 
-const output = computed(() => state.sequence.split('')
-  .map((el) => map[el.toUpperCase()])
-  .filter(Boolean));
+const data = computed(() => {
+  const init = state.sequence.split('');
+  return init.map((el) => {
+    const parsed = map[el.toUpperCase()];
+    const compl = parsed ?? 'N/A';
+    return [el, compl];
+  });
+});
 
 watch(state, (newState) => {
   const { sequence } = newState;
@@ -81,12 +87,8 @@ watch(state, (newState) => {
               placeholder-gray-500 invalid:border-red-500 invalid:border-4
               "
             />
-          <p class="italic mt-4">Complementary strand:</p>
-          <div class="w-sm h-lg my-4 p-5 overflow-y-auto rounded-t-md border-emerald-600 border-2">
-          <span v-for="(char, i) in output" :key="i" class="inline-block">
-            {{ char }}
-          </span>
-          </div>
+          <p class="italic mt-4 tracking-tight">Complete DNA Strand:</p>
+          <OutputContainer :data="data" />
           <div class="w-sm h-lg my-4 p-5 overflow-y-auto rounded-t-md border-gray-500 border-3">
             <p>Melting temperature: {{ state.meltingTemp.toFixed(2) }}</p>
           </div>
